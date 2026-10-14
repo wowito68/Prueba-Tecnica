@@ -69,6 +69,12 @@ test("CRUD autenticado de libros con PostgreSQL real", async (t) => {
         ] as const) {
           assert.equal((await request(method, path, body, false)).status, 401);
         }
+        assert.equal(
+          (await request("GET", "/books", undefined, false)).headers.get(
+            "cache-control",
+          ),
+          "no-store",
+        );
       },
     );
 
@@ -120,6 +126,8 @@ test("CRUD autenticado de libros con PostgreSQL real", async (t) => {
           { paginas: 1.5 },
           { paginas: 2147483648 },
           { paginas: null },
+          { titulo: "a".repeat(201) },
+          { sinopsis: "a".repeat(5001) },
           { id: randomUUID() },
         ]) {
           const response = await request("POST", "/books", {

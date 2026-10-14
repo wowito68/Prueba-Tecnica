@@ -1,4 +1,4 @@
-# Revisión de dependencias — fase 2
+# Revisión de dependencias — revisión final
 
 Revisión realizada el 14 de octubre de 2026, conservando Next.js 15 y Prisma 6.
 
@@ -33,3 +33,11 @@ npm audit --json
 ```
 
 El frontend devuelve código 1 por el pendiente moderado; el backend devuelve código 0.
+
+## Revalidación en fase 4
+
+Se repitió `npm audit --json`: backend con cero vulnerabilidades; frontend con un paquete moderado, sin avisos altos ni críticos. Los informes vigentes están en `backend-audit-fase-4.json` y `frontend-audit-fase-4.json`; las capturas de fases anteriores se conservan como historial.
+
+Se consultaron otra vez las versiones de Next.js 15 y `npm view next@15.5.27 version`. El registro devuelve E404 para el parche y 15.5.26 como última versión disponible de esa rama en la consulta. Los dos avisos enlazados siguen indicando 15.5.27 o 16.3.8 como versiones corregidas. Esto se documenta como una diferencia entre la publicación descrita en los avisos y la disponibilidad observada en el registro; no se declara resuelto el riesgo.
+
+Se conserva la versión probada, sin cambios de dependencias. Antes de publicar se debe repetir la consulta, instalar un parche disponible, ejecutar build, tipos y pruebas, y reevaluar el riesgo si todavía no está disponible.

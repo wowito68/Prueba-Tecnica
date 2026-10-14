@@ -10,11 +10,11 @@ import {
 
 export const bookRouter = Router();
 
-bookRouter.use(authenticate);
 bookRouter.use((_request, response, next) => {
   response.set("Cache-Control", "no-store");
   next();
 });
+bookRouter.use(authenticate);
 bookRouter.get("/", listBooks);
 bookRouter.get("/:id", getBook);
 bookRouter.post("/", createBook);
