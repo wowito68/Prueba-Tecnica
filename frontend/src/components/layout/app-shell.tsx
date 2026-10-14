@@ -83,7 +83,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Link
               href="/catalogo"
               className="nav-link"
-              aria-current={pathname === "/catalogo" ? "page" : undefined}
+              aria-current={pathname.startsWith("/catalogo") ? "page" : undefined}
               onClick={() => setMenuOpen(false)}
             >
               <Icon name="library" width="21" height="21" />

@@ -238,7 +238,7 @@ test("Autenticación completa con servicios Docker y PostgreSQL", async (t) => {
         });
         assert.equal(authenticated.status, 200);
         const html = await authenticated.text();
-        assert.match(html, /Catálogo en preparación/);
+        assert.match(html, /Agregar libro/);
         assert.match(html, /Lector de integración/);
         assert.ok(!html.includes(password));
       },
