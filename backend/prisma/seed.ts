@@ -8,8 +8,20 @@ const seedSchema = z.object({
   APP_ENV: z.enum(["development", "test", "production"]).default("development"),
   SEED_DEMO: z.enum(["true", "false"]).default("true"),
   DEMO_USER_NAME: z.string().trim().min(1).default("Lector de prueba"),
-  DEMO_USER_EMAIL: z.email().default("lector@example.com"),
-  DEMO_USER_PASSWORD: z.string().min(12).max(72).default("LecturaDemo123!"),
+  DEMO_USER_EMAIL: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .pipe(z.email())
+    .default("lector@example.com"),
+  DEMO_USER_PASSWORD: z
+    .string()
+    .min(12)
+    .refine(
+      (value) => Buffer.byteLength(value, "utf8") <= 72,
+      "La contraseña no puede superar 72 bytes",
+    )
+    .default("LecturaDemo123!"),
 });
 
 const libros = [
@@ -20,7 +32,8 @@ const libros = [
     genero: "Realismo mágico",
     anio_publicacion: 1967,
     paginas: 496,
-    sinopsis: "La historia de la familia Buendía a lo largo de varias generaciones en Macondo.",
+    sinopsis:
+      "La historia de la familia Buendía a lo largo de varias generaciones en Macondo.",
   },
   {
     isbn: "9788491050296",
@@ -29,7 +42,8 @@ const libros = [
     genero: "Fábula",
     anio_publicacion: 1943,
     paginas: 96,
-    sinopsis: "Un pequeño viajero descubre la amistad y lo esencial a través de distintos planetas.",
+    sinopsis:
+      "Un pequeño viajero descubre la amistad y lo esencial a través de distintos planetas.",
   },
   {
     isbn: "9788423341981",
@@ -38,7 +52,8 @@ const libros = [
     genero: "Novela",
     anio_publicacion: 1955,
     paginas: 160,
-    sinopsis: "Juan Preciado llega a Comala en busca de su padre y encuentra las voces de su pasado.",
+    sinopsis:
+      "Juan Preciado llega a Comala en busca de su padre y encuentra las voces de su pasado.",
   },
 ];
 
@@ -51,7 +66,9 @@ async function seed() {
   }
 
   if (env.APP_ENV === "production") {
-    throw new Error("El seed de demostración requiere APP_ENV=development o test");
+    throw new Error(
+      "El seed de demostración requiere APP_ENV=development o test",
+    );
   }
 
   const passwordHash = await bcrypt.hash(env.DEMO_USER_PASSWORD, 12);
