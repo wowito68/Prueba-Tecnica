@@ -103,7 +103,7 @@ La API se publica directamente desde Express, sin prefijo `/api`:
 - `POST /auth/login`: autentica con `email` y `password`; devuelve 200.
 - `POST /auth/logout`: elimina la cookie del navegador; devuelve 204.
 - `GET /auth/me`: usuario autenticado, limitado a `id`, `nombre` y `email`.
-- `GET /books`: catálogo completo en `{ books: [...] }`.
+- `GET /books`: catálogo protegido con búsqueda, filtro por género y paginación; devuelve `{ books, pagination, genres }`.
 - `GET /books/:id`: detalle en `{ book: ... }`.
 - `POST /books`: crea un libro; devuelve 201 y el encabezado Location.
 - `PUT /books/:id`: reemplaza los campos editables de un libro; devuelve 200.
@@ -137,6 +137,58 @@ Los errores usan `{ message, errors? }`, donde `errors` asocia campos con mensaj
 - **413:** cuerpo superior a 100 KB.
 - **429:** límite de intentos de registro/login.
 - **500:** error inesperado, con mensaje público genérico.
+
+## Búsqueda, géneros y paginación
+
+El catálogo permite buscar coincidencias parciales por título o autor y combinar la búsqueda con un género exacto, sin distinguir mayúsculas. Se recortan los espacios exteriores; los interiores se conservan. Los caracteres `%`, `_` y `\` se interpretan como texto, no como comodines SQL. No se normalizan acentos: `garcia` y `García` pueden producir resultados diferentes.
+
+La barra de herramientas conserva las vistas de tarjetas y tabla. El buscador espera 300 ms tras la escritura y permite limpiar el texto. Géneros y búsqueda reinician la página a 1; cambiar de vista conserva los filtros y la página. La URL guarda `search`, `genero`, `page` y, opcionalmente, `view=table`, permitiendo recargar, compartir y navegar hacia atrás o adelante. La interfaz muestra 12 libros por página.
+
+`GET /books` acepta parámetros opcionales:
+
+- `search`: texto de hasta 200 caracteres, buscado en título o autor.
+- `genero`: texto de hasta 80 caracteres, coincidencia completa sin distinguir mayúsculas.
+- `page`: entero positivo, predeterminado 1.
+- `limit`: entero entre 1 y 50, predeterminado 12.
+
+Los valores numéricos vacíos, repetidos, no enteros, negativos o fuera de rango devuelven 400. También se rechaza un desplazamiento `(page - 1) * limit` superior a 2147483647. La sesión sigue siendo obligatoria: una petición sin autenticación devuelve 401 antes de validar parámetros. Los parámetros desconocidos se ignoran.
+
+Ejemplo de consulta local, usando un archivo de cookies de una sesión ya iniciada:
+
+```bash
+curl --get http://localhost:4000/books --cookie cookies.txt \
+  --data-urlencode 'search=garcía' \
+  --data-urlencode 'genero=Novela' \
+  --data-urlencode 'page=1' \
+  --data-urlencode 'limit=12'
+```
+
+Formato de respuesta (datos ilustrativos):
+
+```json
+{
+  "books": [],
+  "pagination": {
+    "page": 1,
+    "limit": 12,
+    "total": 0,
+    "totalPages": 0,
+    "hasNextPage": false,
+    "hasPreviousPage": false
+  },
+  "genres": ["Ensayo", "Novela"]
+}
+```
+
+`books` conserva los campos de libro del contrato anterior. `total` cuenta todas las coincidencias; `totalPages` es cero si no hay resultados. `genres` contiene los géneros del catálogo completo, agrupados sin distinguir mayúsculas y ordenados alfabéticamente en español, incluso si la búsqueda no devuelve libros. Se conserva una representación del texto registrado en cada grupo.
+
+La consulta usa Prisma con `skip`/`take`, filtros en PostgreSQL y una transacción Repeatable Read para mantener coherentes el listado, el total y los géneros de cada respuesta. No se cambió el esquema Prisma. Una página posterior al final devuelve `books: []` y mantiene la página solicitada; el frontend corrige la URL a la última página disponible. Al eliminar vuelve a consultar los metadatos y retrocede si la página quedó vacía.
+
+El catálogo distingue biblioteca vacía, búsqueda sin resultados, carga y error con reintento. Cancela las peticiones reemplazadas y descarta respuestas antiguas. Durante la carga no muestra rangos de resultados desactualizados.
+
+La implementación conserva el contrato de autenticación, el Compose local y las rutas del proxy de AWS. Caddy ya reenvía los parámetros de consulta. **Estos cambios no se despliegan automáticamente:** producción conserva la versión anterior hasta revisar el código y realizar la actualización descrita en la guía AWS, reconstruyendo el frontend con su URL pública.
+
+Verificaciones y archivos modificados: [docs/catalogo-busqueda-paginacion.md](docs/catalogo-busqueda-paginacion.md).
 
 ## Organización y arquitectura
 
@@ -219,7 +271,7 @@ Los resultados finales y el checklist están en [docs/verificacion-final.md](doc
 
 - Permanece un aviso moderado de Next.js 15.5.26, agrupando dos vulnerabilidades de caché. El parche compatible 15.5.27 no está disponible en el registro consultado. La aplicación usa App Router dinámico, sin catch-all raíz; esto limita las condiciones descritas, pero no sustituye el parche. Véase [el análisis de seguridad](docs/security/npm-audit.md).
 - No hay revocación central de JWT, refresh tokens, recuperación de contraseña ni roles. Todas las cuentas autenticadas administran el mismo catálogo.
-- No hay paginación ni búsqueda; el listado completo responde al alcance de esta prueba.
+- La paginación usa offset; se ordena por fecha de creación descendente e ID ascendente. Grandes volúmenes pueden requerir índices de búsqueda específicos o paginación por cursor.
 - El limitador de intentos es local al proceso y se reinicia con el backend; escalar requiere almacenamiento compartido y configurar proxies de confianza.
 - La revisión responsive y de accesibilidad es básica. No equivale a certificación WCAG ni a una matriz completa de navegadores.
 - Para operar fuera de esta demostración: reevaluar el aviso de Next.js, conservar respaldos privados fuera de EC2 y revisar las reglas de acceso. El alcance y las verificaciones del despliegue AWS se detallan en su informe.

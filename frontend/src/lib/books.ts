@@ -15,8 +15,32 @@ export type Book = {
 
 export type BookInput = Omit<Book, "id" | "created_at" | "updated_at">;
 
+export type BookListQuery = {
+  search?: string;
+  genero?: string;
+  page?: number;
+  limit?: number;
+};
+export type BookList = {
+  books: Book[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+  genres: string[];
+};
+
 export const booksApi = {
-  list: () => request<{ books: Book[] }>("/books"),
+  list: (query: BookListQuery = {}, signal?: AbortSignal) => {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(query))
+      if (value !== undefined && value !== "") params.set(key, String(value));
+    return request<BookList>(`/books?${params}`, { signal });
+  },
   get: (id: string) =>
     request<{ book: Book }>(`/books/${encodeURIComponent(id)}`),
   create: (input: BookInput) =>

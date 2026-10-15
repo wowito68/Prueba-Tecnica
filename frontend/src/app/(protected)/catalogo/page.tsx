@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { BookLoading } from "@/components/books/book-state";
 import type { Metadata } from "next";
 import { Catalog } from "@/components/books/catalog";
 
@@ -15,5 +17,9 @@ export default async function CatalogPage({
       : resultado === "eliminado"
         ? "El libro se eliminó del catálogo."
         : "";
-  return <Catalog message={message} />;
+  return (
+    <Suspense fallback={<BookLoading />}>
+      <Catalog message={message} />
+    </Suspense>
+  );
 }
