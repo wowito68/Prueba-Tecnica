@@ -41,3 +41,7 @@ Se repitió `npm audit --json`: backend con cero vulnerabilidades; frontend con 
 Se consultaron otra vez las versiones de Next.js 15 y `npm view next@15.5.27 version`. El registro devuelve E404 para el parche y 15.5.26 como última versión disponible de esa rama en la consulta. Los dos avisos enlazados siguen indicando 15.5.27 o 16.3.8 como versiones corregidas. Esto se documenta como una diferencia entre la publicación descrita en los avisos y la disponibilidad observada en el registro; no se declara resuelto el riesgo.
 
 Se conserva la versión probada, sin cambios de dependencias. Antes de publicar se debe repetir la consulta, instalar un parche disponible, ejecutar build, tipos y pruebas, y reevaluar el riesgo si todavía no está disponible.
+
+## Revalidación para AWS
+
+El backend reporta cero vulnerabilidades en `backend-audit-aws.json`. El informe `frontend-audit-aws.json` conserva un paquete moderado y ningún aviso alto o crítico. La consulta de 15.5.27 continúa devolviendo E404 en el registro utilizado. Se despliega 15.5.26 para esta demostración manteniendo el riesgo documentado; no se declara corregido. El catálogo y la autenticación siguen renderizándose dinámicamente. Debe reevaluarse antes de ampliar su uso.
