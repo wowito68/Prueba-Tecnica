@@ -1,0 +1,12 @@
+{$DOMAIN} {
+	encode zstd gzip
+
+	@backend path /auth /auth/* /books /books/* /health
+	handle @backend {
+		reverse_proxy backend:4000
+	}
+
+	handle {
+		reverse_proxy frontend:3000
+	}
+}

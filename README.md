@@ -87,11 +87,12 @@ Si cambias los puertos públicos, ajusta también `FRONTEND_ORIGIN`, `NEXT_PUBLI
 - `JWT_SECRET`: secreto de firma, de al menos 32 caracteres. El valor predeterminado es de demostración.
 - `SESSION_TTL_SECONDS`: duración de sesión; 3600 por defecto, entre 60 y 86400.
 - `COOKIE_SECURE`: `false` para HTTP local; `true` para HTTPS.
+- `TRUST_PROXY_HOPS`: `0` por defecto; `1` solo detrás del único proxy Caddy con backend privado.
 - `SEED_DEMO`: `true` activa el seed; `false` lo desactiva.
 - `DEMO_USER_NAME`, `DEMO_USER_EMAIL`, `DEMO_USER_PASSWORD`: datos del usuario que el seed crea si todavía no existe. Cambiarlos no modifica una cuenta ya creada.
 - El seed requiere una contraseña de demostración de al menos 12 caracteres y hasta 72 bytes UTF-8; el registro normal requiere al menos 8 caracteres y el mismo máximo en bytes.
 
-Para producción se necesitan `APP_ENV=production`, un secreto JWT propio, `COOKIE_SECURE=true`, `SEED_DEMO=false`, HTTPS y credenciales privadas de base de datos. El backend rechaza la configuración de producción con el secreto demo o cookies inseguras. Las imágenes y el Compose incluidos constituyen un entorno local; no configuran un proxy HTTPS ni copias de seguridad.
+Para producción se necesitan `APP_ENV=production`, un secreto JWT propio, `COOKIE_SECURE=true`, `SEED_DEMO=false`, HTTPS y credenciales privadas de base de datos. El backend rechaza la configuración de producción con el secreto demo o cookies inseguras. El Compose local conserva su configuración de desarrollo. El despliegue con HTTPS y respaldos se explica en la sección AWS.
 
 ## Endpoints
 
@@ -221,4 +222,22 @@ Los resultados finales y el checklist están en [docs/verificacion-final.md](doc
 - No hay paginación ni búsqueda; el listado completo responde al alcance de esta prueba.
 - El limitador de intentos es local al proceso y se reinicia con el backend; escalar requiere almacenamiento compartido y configurar proxies de confianza.
 - La revisión responsive y de accesibilidad es básica. No equivale a certificación WCAG ni a una matriz completa de navegadores.
-- Antes de publicar: resolver o evaluar formalmente el aviso, configurar HTTPS, secretos privados, backups y el despliegue de migraciones. No se ha verificado un despliegue público de producción.
+- Para operar fuera de esta demostración: reevaluar el aviso de Next.js, conservar respaldos privados fuera de EC2 y revisar las reglas de acceso. El alcance y las verificaciones del despliegue AWS se detallan en su informe.
+
+## Despliegue en AWS EC2
+
+La configuración de producción está separada en `docker-compose.prod.yml`, con Caddy como única entrada pública en 80/443 y certificados HTTPS automáticos. Next.js, Express y PostgreSQL permanecen en la red Docker; el Compose local conserva su comportamiento.
+
+El dominio es `tractoandespruebatecnica.duckdns.org`. El cliente se compila con su URL HTTPS y la comprobación de sesión de Next.js usa `http://backend:4000` internamente. `/auth/*`, `/books`, `/books/*` y `/health` conservan sus paths al pasar por el proxy.
+
+En EC2 se crea `.env.prod` con `python3 scripts/create-production-env.py`, secretos aleatorios y permisos 0600. La configuración fuerza cookies Secure, `APP_ENV=production` y `SEED_DEMO=false`. No hay usuario demo precargado: el evaluador se registra. Todas las cuentas comparten permisos sobre el catálogo; usa únicamente datos ficticios.
+
+Se recomienda construir las imágenes fuera de la instancia de 2 GB y transferirlas por SSH. Para iniciar, consultar logs o reiniciar, desde el directorio del proyecto en EC2:
+
+```bash
+sudo docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --no-build --wait
+sudo docker compose --env-file .env.prod -f docker-compose.prod.yml logs --tail=100
+sudo docker compose --env-file .env.prod -f docker-compose.prod.yml restart backend frontend
+```
+
+No combines los archivos Compose local y de producción ni elimines volúmenes. La guía [docs/despliegue-aws.md](docs/despliegue-aws.md) incluye requisitos de EC2, instalación de Docker, DNS y Elastic IP, reglas AWS, HTTPS, variables, construcción, transferencia, backups, actualización y rollback. El estado comprobado se registra en [docs/despliegue-aws-resultados.md](docs/despliegue-aws-resultados.md).
