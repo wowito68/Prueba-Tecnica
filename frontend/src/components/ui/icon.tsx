@@ -1,6 +1,8 @@
 import type { SVGProps } from "react";
 
 type IconName =
+  | "search"
+  | "filter"
   | "book"
   | "library"
   | "logout"
@@ -9,6 +11,13 @@ type IconName =
   | "eye"
   | "eye-off";
 const paths: Record<IconName, React.ReactNode> = {
+  search: (
+    <>
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="m16 16 5 5" />
+    </>
+  ),
+  filter: <path d="M3 4h18l-7 8v7l-4 2v-9z" />,
   book: (
     <>
       <path d="M12 5c-3-2-7-2-10-1v15c3-1 7-1 10 1 3-2 7-2 10-1V4c-3-1-7-1-10 1Z" />

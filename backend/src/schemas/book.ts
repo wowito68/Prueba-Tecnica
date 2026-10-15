@@ -38,3 +38,25 @@ export const bookSchema = z
   .strict();
 
 export type BookInput = z.infer<typeof bookSchema>;
+
+const positiveQueryInteger = (fallback: string, max: number) =>
+  z
+    .string()
+    .regex(/^[1-9]\d*$/, "Introduce un entero positivo")
+    .default(fallback)
+    .transform(Number)
+    .pipe(z.number().int().max(max));
+
+export const bookListSchema = z
+  .object({
+    search: z.string().trim().max(200).default(""),
+    genero: z.string().trim().max(80).default(""),
+    page: positiveQueryInteger("1", 2147483647),
+    limit: positiveQueryInteger("12", 50),
+  })
+  .refine((value) => (value.page - 1) * value.limit <= 2147483647, {
+    path: ["page"],
+    message: "La página solicitada excede el rango permitido",
+  });
+
+export type BookListQuery = z.infer<typeof bookListSchema>;

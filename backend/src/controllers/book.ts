@@ -1,9 +1,9 @@
 import type { RequestHandler } from "express";
-import { bookIdSchema, bookSchema } from "../schemas/book";
+import { bookIdSchema, bookListSchema, bookSchema } from "../schemas/book";
 import { bookService } from "../services/book";
 
-export const listBooks: RequestHandler = async (_request, response) => {
-  response.json({ books: await bookService.list() });
+export const listBooks: RequestHandler = async (request, response) => {
+  response.json(await bookService.list(bookListSchema.parse(request.query)));
 };
 
 export const getBook: RequestHandler = async (request, response) => {

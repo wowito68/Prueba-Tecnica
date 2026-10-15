@@ -12,14 +12,19 @@ export class ApiError extends Error {
   }
 }
 
-export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+export async function request<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`${apiUrl}${path}`, {
       ...options,
       credentials: "include",
       cache: "no-store",
-      signal: AbortSignal.timeout(10000),
+      signal: options.signal
+        ? AbortSignal.any([options.signal, AbortSignal.timeout(10000)])
+        : AbortSignal.timeout(10000),
       headers: { "Content-Type": "application/json", ...options.headers },
     });
   } catch {

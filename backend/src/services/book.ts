@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { HttpError } from "../lib/http-error";
 import { bookRepository } from "../repositories/book";
-import type { BookInput } from "../schemas/book";
+import type { BookInput, BookListQuery } from "../schemas/book";
 
 function translateWriteError(error: unknown): never {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -13,7 +13,29 @@ function translateWriteError(error: unknown): never {
 }
 
 export const bookService = {
-  list: () => bookRepository.list(),
+  list: async (query: BookListQuery) => {
+    const [books, total, availableGenres] = await bookRepository.list(query);
+    const genres = [
+      ...new Map(
+        availableGenres.map(
+          ({ genero }) => [genero.toLocaleLowerCase("es"), genero] as const,
+        ),
+      ).values(),
+    ].sort((a, b) => a.localeCompare(b, "es"));
+    const totalPages = Math.ceil(total / query.limit);
+    return {
+      books,
+      pagination: {
+        page: query.page,
+        limit: query.limit,
+        total,
+        totalPages,
+        hasNextPage: query.page < totalPages,
+        hasPreviousPage: total > 0 && query.page > 1,
+      },
+      genres,
+    };
+  },
   get: async (id: string) => {
     const book = await bookRepository.findById(id);
     if (!book) throw new HttpError(404, "Libro no encontrado");
